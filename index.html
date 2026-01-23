@@ -34,7 +34,7 @@
         
         .fb-input-group { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
         .fb-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9em; }
-        .word-count { font-size: 0.75em; color: #666; text-align: right; }
+        .word-count { font-size: 0.75em; color: #666; text-align: right; margin-bottom: 5px; }
         .fb-btn { background: var(--primary); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .fb-btn:disabled { background: #ccc; cursor: not-allowed; }
 
@@ -49,7 +49,7 @@
     
     <div class="input-section">
         <label style="font-weight: bold; font-size: 0.9em;">YouTube Video ID:</label>
-        <input type="text" id="ytCode" placeholder="Plak code en druk op Enter" style="width:100%; padding:10px; margin-top:5px; box-sizing:border-box;" onchange="updateVideo(this.value)">
+        <input type="text" id="ytCode" placeholder="Plak ID en druk op Enter" style="width:100%; padding:10px; margin-top:5px; box-sizing:border-box;" onchange="updateVideo(this.value)">
     </div>
     
     <div id="player-wrapper">
@@ -57,7 +57,7 @@
     </div>
 
     <div class="input-section">
-        <textarea id="pvInput" rows="4" placeholder="Typ hier de aangifte... (Druk op Ctrl+Enter om in te leveren)"></textarea>
+        <textarea id="pvInput" rows="4" placeholder="Typ hier de aangifte... (Ctrl + Enter om in te leveren)"></textarea>
         <button class="main-btn" onclick="sendToFirebase()">✅ Inleveren</button>
     </div>
 
@@ -69,32 +69,22 @@
 </div>
 
 <script>
+    // --- FIREBASE CONFIGURATIE ---
     const firebaseConfig = {
-       // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyCJ5of6K5MRFXMOiEqEyZxZbs1xoJtXuN8",
-  authDomain: "pvaangifteinleveren.firebaseapp.com",
-  databaseURL: "https://pvaangifteinleveren-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "pvaangifteinleveren",
-  storageBucket: "pvaangifteinleveren.firebasestorage.app",
-  messagingSenderId: "989190242332",
-  appId: "1:989190242332:web:40bb7c408441c707835fd9"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);,
-        databaseURL: "https://pvaangifteinleveren-77dbe-default-rtdb.europe-west1.firebasedatabase.app/",
+        apiKey: "AIzaSyCJ5of6K5MRFXMOiEqEyZxZbs1xoJtXuN8",
+        authDomain: "pvaangifteinleveren.firebaseapp.com",
+        databaseURL: "https://pvaangifteinleveren-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "pvaangifteinleveren",
+        storageBucket: "pvaangifteinleveren.firebasestorage.app",
+        messagingSenderId: "989190242332",
+        appId: "1:989190242332:web:40bb7c408441c707835fd9"
     };
 
+    // Initialiseer Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // 1. ENTER TOETS IN TEXTAREA
+    // 1. SNEL INLEVEREN (Ctrl + Enter)
     document.getElementById('pvInput').addEventListener('keydown', function(e) {
         if (e.ctrlKey && e.key === 'Enter') {
             sendToFirebase();
@@ -154,12 +144,14 @@ const app = initializeApp(firebaseConfig);,
         db.ref('posts/' + id).update({ feedback: fbText });
     }
 
-    // 5. RESET
+    // 5. DATABASE WISSEN
     function clearDatabase() {
-        if(confirm("Alles wissen?")) db.ref('posts').remove();
+        if(confirm("Wil je alle inzendingen van deze sessie verwijderen?")) {
+            db.ref('posts').remove();
+        }
     }
 
-    // 6. LIVE FEED
+    // 6. LIVE FEED WEERGAVE
     db.ref('posts').on('value', (snapshot) => {
         const container = document.getElementById('feed-container');
         container.innerHTML = "";
@@ -180,4 +172,20 @@ const app = initializeApp(firebaseConfig);,
                             ${item.feedback || 'Nog geen feedback ontvangen...'}
                         </p>
                         <div class="fb-input-group">
-                            <input class="fb-input" id="input-${id}"
+                            <input class="fb-input" id="input-${id}" 
+                                   oninput="checkWordCount('${id}')" 
+                                   placeholder="Feedback (max 20 woorden)..." 
+                                   value="${item.feedback || ''}">
+                            <div class="word-count" id="count-${id}">0/20 woorden</div>
+                            <button class="fb-btn" id="btn-${id}" onclick="submitFeedback('${id}')">STUUR FEEDBACK</button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+    });
+</script>
+
+</body>
+</html>
