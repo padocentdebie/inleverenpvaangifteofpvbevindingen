@@ -32,9 +32,11 @@
         .pv-box { background: #fff; padding: 15px; border-left: 6px solid var(--primary); border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .fb-box { background: #fffbe6; padding: 15px; border-left: 6px solid var(--accent); border-radius: 4px; }
         
-        .fb-input-group { display: flex; gap: 5px; margin-top: 10px; }
-        .fb-input { flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        .fb-btn { background: var(--primary); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
+        .fb-input-group { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+        .fb-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9em; }
+        .word-count { font-size: 0.75em; color: #666; text-align: right; }
+        .fb-btn { background: var(--primary); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .fb-btn:disabled { background: #ccc; cursor: not-allowed; }
 
         .admin-section { margin-top: 50px; padding: 15px; border: 2px dashed #ccc; border-radius: 8px; text-align: center; }
         .delete-btn { background: var(--danger); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
@@ -46,7 +48,7 @@
     <h2>PV Training Live Feed</h2>
     
     <div class="input-section">
-        <label style="font-weight: bold; font-size: 0.9em;">YouTube Video ID (bijv. dQw4w9WgXcQ):</label>
+        <label style="font-weight: bold; font-size: 0.9em;">YouTube Video ID:</label>
         <input type="text" id="ytCode" placeholder="Plak code en druk op Enter" style="width:100%; padding:10px; margin-top:5px; box-sizing:border-box;" onchange="updateVideo(this.value)">
     </div>
     
@@ -55,14 +57,13 @@
     </div>
 
     <div class="input-section">
-        <textarea id="pvInput" rows="4" placeholder="Typ hier de aangifte of bevindingen..."></textarea>
+        <textarea id="pvInput" rows="4" placeholder="Typ hier de aangifte... (Druk op Ctrl+Enter om in te leveren)"></textarea>
         <button class="main-btn" onclick="sendToFirebase()">✅ Inleveren</button>
     </div>
 
     <div id="feed-container"></div>
 
     <div class="admin-section">
-        <p style="font-size: 0.8em; color: #666;">Docent opties:</p>
         <button class="delete-btn" onclick="clearDatabase()">🗑️ Wis alle teksten van deze les</button>
     </div>
 </div>
@@ -81,7 +82,14 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // 1. VIDEO FUNCTIES
+    // 1. ENTER TOETS IN TEXTAREA
+    document.getElementById('pvInput').addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 'Enter') {
+            sendToFirebase();
+        }
+    });
+
+    // 2. VIDEO UPDATES
     function updateVideo(val) {
         if(val) {
             let cleanId = val.includes('v=') ? val.split('v=')[1].split('&')[0] : val.trim();
@@ -97,10 +105,10 @@
         }
     });
 
-    // 2. PV VERSTUREN
+    // 3. PV VERSTUREN
     function sendToFirebase() {
         const tekst = document.getElementById('pvInput').value.trim();
-        if(!tekst) return alert("Typ eerst een tekst!");
+        if(!tekst) return;
 
         db.ref('posts').push({
             tekst: tekst,
@@ -108,23 +116,38 @@
             timestamp: Date.now()
         }).then(() => {
             document.getElementById('pvInput').value = '';
-        }).catch(err => alert("Fout: " + err.message));
+        });
     }
 
-    // 3. FEEDBACK VERSTUREN
+    // 4. FEEDBACK VALIDATIE (MAX 20 WOORDEN)
+    function checkWordCount(id) {
+        const input = document.getElementById('input-' + id);
+        const btn = document.getElementById('btn-' + id);
+        const countDisplay = document.getElementById('count-' + id);
+        
+        const words = input.value.trim().split(/\s+/).filter(w => w.length > 0);
+        countDisplay.innerText = words.length + "/20 woorden";
+        
+        if(words.length > 20) {
+            countDisplay.style.color = "red";
+            btn.disabled = true;
+        } else {
+            countDisplay.style.color = "#666";
+            btn.disabled = false;
+        }
+    }
+
     function submitFeedback(id) {
         const fbText = document.getElementById('input-' + id).value;
         db.ref('posts/' + id).update({ feedback: fbText });
     }
 
-    // 4. RESET DATABASE
+    // 5. RESET
     function clearDatabase() {
-        if(confirm("Wil je echt alles wissen voor de volgende les?")) {
-            db.ref('posts').remove();
-        }
+        if(confirm("Alles wissen?")) db.ref('posts').remove();
     }
 
-    // 5. LIVE FEED BIJHOUDEN
+    // 6. LIVE FEED
     db.ref('posts').on('value', (snapshot) => {
         const container = document.getElementById('feed-container');
         container.innerHTML = "";
@@ -136,23 +159,13 @@
                 row.className = 'entry-row';
                 row.innerHTML = `
                     <div class="pv-box">
-                        <strong>Ingezonden PV:</strong><br>
+                        <strong>Ingezonden tekst:</strong><br>
                         <p style="white-space: pre-wrap;">${item.tekst}</p>
                     </div>
                     <div class="fb-box">
                         <strong>Feedback:</strong>
-                        <p id="display-${id}" style="font-style: italic; color: #444;">${item.feedback || 'Nog geen feedback...'}</p>
+                        <p id="display-${id}" style="font-style: italic; color: #444; border-bottom: 1px solid #ddd; padding-bottom: 5px;">
+                            ${item.feedback || 'Nog geen feedback ontvangen...'}
+                        </p>
                         <div class="fb-input-group">
-                            <input class="fb-input" id="input-${id}" placeholder="Type feedback..." value="${item.feedback || ''}">
-                            <button class="fb-btn" onclick="submitFeedback('${id}')">OK</button>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(row);
-            });
-        }
-    });
-</script>
-
-</body>
-</html>
+                            <input class="fb-input" id="input-${id}"
