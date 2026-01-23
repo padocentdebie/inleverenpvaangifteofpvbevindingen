@@ -1,33 +1,158 @@
-<div class="input-area">
-        <label class="label">Jouw PV / Bevindingen:</label>
-        <textarea id="pvInput" rows="5" placeholder="Typ je tekst..."></textarea>
-        <button id="submitBtn" onclick="sendToFirebase()">Inleveren</button>
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PV Training Live - Werkversie</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <style>
+        :root { --primary: #003082; --secondary: #f3f3f3; --accent: #ffcc00; --success: #28a745; --danger: #dc3545; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #e5e5e5; padding: 20px; margin: 0; }
+        .container { max-width: 950px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        
+        h2 { color: var(--primary); margin-top: 0; border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
+        
+        #player-wrapper { 
+            width: 100%; aspect-ratio: 16 / 9; background: #000; 
+            margin: 20px 0; border-radius: 8px; overflow: hidden;
+            display: flex; align-items: center; justify-content: center; color: #666;
+            position: relative;
+        }
+
+        .input-section { background: var(--secondary); padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        textarea { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; resize: vertical; }
+        
+        .main-btn { background: var(--success); color: white; padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1.1em; margin-top: 10px; }
+        .main-btn:hover { background: #218838; }
+
+        .entry-row { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; margin-top: 25px; padding-top: 20px; border-top: 2px solid #eee; }
+        .pv-box { background: #fff; padding: 15px; border-left: 6px solid var(--primary); border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .fb-box { background: #fffbe6; padding: 15px; border-left: 6px solid var(--accent); border-radius: 4px; }
+        
+        .fb-input-group { display: flex; gap: 5px; margin-top: 10px; }
+        .fb-input { flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .fb-btn { background: var(--primary); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
+
+        .admin-section { margin-top: 50px; padding: 15px; border: 2px dashed #ccc; border-radius: 8px; text-align: center; }
+        .delete-btn { background: var(--danger); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>PV Training Live Feed</h2>
+    
+    <div class="input-section">
+        <label style="font-weight: bold; font-size: 0.9em;">YouTube Video ID (bijv. dQw4w9WgXcQ):</label>
+        <input type="text" id="ytCode" placeholder="Plak code en druk op Enter" style="width:100%; padding:10px; margin-top:5px; box-sizing:border-box;" onchange="updateVideo(this.value)">
+    </div>
+    
+    <div id="player-wrapper">
+        <div id="player">Video wordt geladen zodra ID is ingevoerd...</div>
     </div>
 
-    <div style="margin-top: 50px; padding-top: 20px; border-top: 2px dashed #ccc;">
-        <button onclick="clearDatabase()" style="background-color: #dc3545; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-size: 0.8em; width: auto;">
-            🗑️ Wis alle teksten (Alleen na de les!)
-        </button>
+    <div class="input-section">
+        <textarea id="pvInput" rows="4" placeholder="Typ hier de aangifte of bevindingen..."></textarea>
+        <button class="main-btn" onclick="sendToFirebase()">✅ Inleveren voor de klas</button>
     </div>
 
     <div id="feed-container"></div>
+
+    <div class="admin-section">
+        <p style="font-size: 0.8em; color: #666;">Docent opties:</p>
+        <button class="delete-btn" onclick="clearDatabase()">🗑️ Wis alle teksten van deze les</button>
+    </div>
 </div>
 
 <script>
-    // ... (Houd je bestaande Firebase configuratie hier!) ...
+    const firebaseConfig = {
+        apiKey: "AIzaSyCJ5of6K5MRFXMOiEqEyZxZbs1xoJtXuN8",
+        authDomain: "pvaangifteinleveren.firebaseapp.com",
+        projectId: "pvaangifteinleveren",
+        storageBucket: "pvaangifteinleveren.firebasestorage.app",
+        messagingSenderId: "989190242332",
+        appId: "1:989190242332:web:867ea95845325cf9835fd9",
+        databaseURL: "https://pvaangifteinleveren-default-rtdb.europe-west1.firebasedatabase.app/"
+    };
 
-    // NIEUWE FUNCTIE: Alles verwijderen
-    function clearDatabase() {
-        if (confirm("Weet je zeker dat je ALLE ingeleverde teksten wilt verwijderen? Dit kan niet ongedaan worden gemaakt.")) {
-            db.ref('posts').remove()
-                .then(() => {
-                    alert("Alle teksten zijn succesvol verwijderd.");
-                })
-                .catch((error) => {
-                    alert("Fout bij verwijderen: " + error.message);
-                });
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // 1. VIDEO FUNCTIES
+    function updateVideo(val) {
+        if(val) {
+            let cleanId = val.includes('v=') ? val.split('v=')[1].split('&')[0] : val.trim();
+            db.ref('currentVideo').set(cleanId);
         }
     }
 
-    // ... (De rest van je functies zoals sendToFirebase blijven hetzelfde) ...
+    db.ref('currentVideo').on('value', (snapshot) => {
+        const code = snapshot.val();
+        const playerDiv = document.getElementById('player');
+        if(code) {
+            playerDiv.innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${code}" frameborder="0" allowfullscreen style="position:absolute; top:0; left:0;"></iframe>`;
+        }
+    });
+
+    // 2. PV VERSTUREN
+    function sendToFirebase() {
+        const tekst = document.getElementById('pvInput').value.trim();
+        if(!tekst) return alert("Typ eerst een tekst!");
+
+        db.ref('posts').push({
+            tekst: tekst,
+            feedback: "",
+            timestamp: Date.now()
+        }).then(() => {
+            document.getElementById('pvInput').value = '';
+        }).catch(err => alert("Fout: " + err.message));
+    }
+
+    // 3. FEEDBACK VERSTUREN
+    function submitFeedback(id) {
+        const fbText = document.getElementById('input-' + id).value;
+        db.ref('posts/' + id).update({ feedback: fbText });
+    }
+
+    // 4. RESET DATABASE
+    function clearDatabase() {
+        if(confirm("Wil je echt alles wissen voor de volgende les?")) {
+            db.ref('posts').remove();
+        }
+    }
+
+    // 5. LIVE FEED BIJHOUDEN
+    db.ref('posts').on('value', (snapshot) => {
+        const container = document.getElementById('feed-container');
+        container.innerHTML = "";
+        const data = snapshot.val();
+        if(data) {
+            Object.keys(data).reverse().forEach(id => {
+                const item = data[id];
+                const row = document.createElement('div');
+                row.className = 'entry-row';
+                row.innerHTML = `
+                    <div class="pv-box">
+                        <strong>Ingezonden PV:</strong><br>
+                        <p style="white-space: pre-wrap;">${item.tekst}</p>
+                    </div>
+                    <div class="fb-box">
+                        <strong>Feedback:</strong>
+                        <p id="display-${id}" style="font-style: italic; color: #444;">${item.feedback || 'Nog geen feedback...'}</p>
+                        <div class="fb-input-group">
+                            <input class="fb-input" id="input-${id}" placeholder="Type feedback..." value="${item.feedback || ''}">
+                            <button class="fb-btn" onclick="submitFeedback('${id}')">OK</button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+    });
 </script>
+
+</body>
+</html>
