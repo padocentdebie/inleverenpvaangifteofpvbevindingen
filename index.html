@@ -1,129 +1,33 @@
-<!DOCTYPE html>
-<html lang="nl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PV Training Live</title>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    
-    <style>
-        :root { --primary: #003082; --secondary: #f3f3f3; --accent: #ffcc00; --success: #28a745; }
-        body { font-family: sans-serif; background: #e5e5e5; padding: 20px; margin: 0; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 12px; }
-        
-        /* Video altijd zichtbaar maken voor test */
-        #player-wrapper { 
-            width: 100%; 
-            aspect-ratio: 16 / 9; 
-            background: #000; 
-            margin: 20px 0; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-            color: white;
-            border-radius: 8px;
-        }
-        
-        textarea { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { background: var(--success); color: white; padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; width: 100%; }
-        
-        .entry-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px; }
-        .pv-box { background: #f9f9f9; padding: 10px; border-left: 5px solid var(--primary); }
-        .fb-box { background: #fffbe6; padding: 10px; border-left: 5px solid var(--accent); }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <h2>PV Training</h2>
-    
-    <input type="text" id="ytCode" placeholder="Plak YouTube Code en druk Enter" style="width:100%; padding:10px;" onchange="updateVideo(this.value)">
-    
-    <div id="player-wrapper">
-        <div id="player">Video verschijnt hier na invoer code...</div>
+<div class="input-area">
+        <label class="label">Jouw PV / Bevindingen:</label>
+        <textarea id="pvInput" rows="5" placeholder="Typ je tekst..."></textarea>
+        <button id="submitBtn" onclick="sendToFirebase()">Inleveren</button>
     </div>
 
-    <textarea id="pvInput" rows="5" placeholder="Typ je PV hier..."></textarea>
-    <button onclick="sendToFirebase()">Inleveren</button>
+    <div style="margin-top: 50px; padding-top: 20px; border-top: 2px dashed #ccc;">
+        <button onclick="clearDatabase()" style="background-color: #dc3545; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-size: 0.8em; width: auto;">
+            🗑️ Wis alle teksten (Alleen na de les!)
+        </button>
+    </div>
 
     <div id="feed-container"></div>
 </div>
 
 <script>
-    // JOUW SPECIFIEKE CONFIGURATIE (Gecontroleerd op komma's)
-    const firebaseConfig = {
-        apiKey: "AIzaSyCJ5of6K5MRFXMOiEqEyZxZbs1xoJtXuN8",
-        authDomain: "pvaangifteinleveren.firebaseapp.com",
-        projectId: "pvaangifteinleveren",
-        storageBucket: "pvaangifteinleveren.firebasestorage.app",
-        messagingSenderId: "989190242332",
-        appId: "1:989190242332:web:867ea95845325cf9835fd9",
-        databaseURL: "https://pvaangifteinleveren-default-rtdb.europe-west1.firebasedatabase.app/"
-    };
+    // ... (Houd je bestaande Firebase configuratie hier!) ...
 
-    // Start Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-
-    // Functie: Video updaten
-    function updateVideo(val) {
-        if(val) db.ref('currentVideo').set(val.trim());
-    }
-
-    // Luister naar video wijzigingen
-    db.ref('currentVideo').on('value', (snapshot) => {
-        const code = snapshot.val();
-        if(code) {
-            document.getElementById('player').innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${code}" frameborder="0" allowfullscreen style="position:absolute; top:0; left:0; width:100%; height:100%;"></iframe>`;
-            document.getElementById('player-wrapper').style.position = 'relative';
-        }
-    });
-
-    // Functie: PV versturen
-    function sendToFirebase() {
-        const tekst = document.getElementById('pvInput').value.trim();
-        if(tekst) {
-            db.ref('posts').push({
-                tekst: tekst,
-                feedback: "",
-                timestamp: Date.now()
-            }).then(() => {
-                document.getElementById('pvInput').value = '';
-                console.log("Verzonden!");
-            }).catch((error) => {
-                alert("Fout bij verzenden: " + error.message);
-            });
+    // NIEUWE FUNCTIE: Alles verwijderen
+    function clearDatabase() {
+        if (confirm("Weet je zeker dat je ALLE ingeleverde teksten wilt verwijderen? Dit kan niet ongedaan worden gemaakt.")) {
+            db.ref('posts').remove()
+                .then(() => {
+                    alert("Alle teksten zijn succesvol verwijderd.");
+                })
+                .catch((error) => {
+                    alert("Fout bij verwijderen: " + error.message);
+                });
         }
     }
 
-    // Functie: Feedback versturen
-    function sendFeedback(id, fb) {
-        db.ref('posts/' + id).update({ feedback: fb });
-    }
-
-    // Luister naar berichten
-    db.ref('posts').on('value', (snapshot) => {
-        const container = document.getElementById('feed-container');
-        container.innerHTML = ""; 
-        const data = snapshot.val();
-        if(data) {
-            Object.keys(data).reverse().forEach(id => {
-                const item = data[id];
-                const row = document.createElement('div');
-                row.className = 'entry-row';
-                row.innerHTML = `
-                    <div class="pv-box"><strong>PV:</strong><br>${item.tekst}</div>
-                    <div class="fb-box">
-                        <strong>Feedback:</strong><br>
-                        <div>${item.feedback || '...'}</div>
-                        <input style="width:100%" placeholder="Typ feedback..." onchange="sendFeedback('${id}', this.value)">
-                    </div>
-                `;
-                container.appendChild(row);
-            });
-        }
-    });
+    // ... (De rest van je functies zoals sendToFirebase blijven hetzelfde) ...
 </script>
-</body>
-</html>
