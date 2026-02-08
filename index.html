@@ -9,7 +9,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     
     <style>
-        :root { --primary: #003082; --secondary: #f3f3f3; --accent: #ffcc00; --success: #28a745; --danger: #dc3545; }
+        :root { --primary: #003082; --secondary: #f3f3f3; --accent: #ffcc00; --success: #28a745; --danger: #dc3545; --info: #e7f3ff; }
         body { font-family: 'Segoe UI', Arial, sans-serif; background: #e5e5e5; padding: 20px; margin: 0; }
         .container { max-width: 950px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         
@@ -23,6 +23,19 @@
         }
 
         .input-section { background: var(--secondary); padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        
+        /* OC Melding Box */
+        .oc-melding { 
+            background: var(--info); 
+            border-left: 6px solid var(--primary); 
+            padding: 15px; 
+            margin-bottom: 20px; 
+            border-radius: 4px;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+        .oc-header { color: var(--primary); font-weight: bold; text-transform: uppercase; margin-bottom: 8px; display: block; }
+
         .user-info { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
         input, select, textarea { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
         
@@ -60,6 +73,15 @@
         <div id="player">Video wordt geladen...</div>
     </div>
 
+    <div class="oc-melding">
+        <span class="oc-header">🚨 OC Melding: Ga naar</span>
+        <strong>Locatie:</strong> Supermarkt 'De Versmarkt', Hoofdstraat 14, 3511 AB Utrecht<br>
+        <strong>Tijdstip:</strong> <span id="currentDateTime"></span><br><br>
+        <strong>Melding:</strong> Er is zojuist een winkeldiefstal gemeld. De bedrijfsleider heeft de verdachte in de kantine zitten. <br>
+        <strong>Opdracht:</strong> Neem de aangifte op. Het Operationeel Centrum (OC) verzoekt expliciet om een duidelijke beschrijving van het <strong>decor buiten</strong>, het <strong>decor binnen</strong> en het volledige <strong>signalement</strong> van de pleger. <br>
+        <em>Let op: Deze gegevens moeten verwerkt worden in het PV van Aangifte.</em>
+    </div>
+
     <div class="input-section">
         <div class="user-info">
             <input type="text" id="userName" placeholder="Je voornaam">
@@ -72,7 +94,7 @@
                 <option value="Mike">Mike</option>
             </select>
         </div>
-        <textarea id="pvInput" rows="5" placeholder="Typ hier de aangifte... (Gebruik Onvoltooid Verleden Tijd: 'Ik zag', 'Ik hoorde', etc.)"></textarea>
+        <textarea id="pvInput" rows="6" placeholder="Typ hier de aangifte... (Gebruik OVT: 'Ik zag', 'Ik hoorde', etc.) Vergeet decor en signalement niet!"></textarea>
         <button class="main-btn" onclick="sendToFirebase()">✅ Inleveren</button>
     </div>
 
@@ -98,6 +120,14 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    // Datum/Tijd generator voor OC Melding
+    function setOCDateTime() {
+        const nu = new Date();
+        const opties = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+        document.getElementById('currentDateTime').innerText = nu.toLocaleDateString('nl-NL', opties);
+    }
+    setOCDateTime();
+
     function updateVideo(val) {
         if(val) {
             let cleanId = val.includes('v=') ? val.split('v=')[1].split('&')[0] : val.trim();
@@ -117,7 +147,10 @@
         const klas = document.getElementById('userClass').value;
         const tekst = document.getElementById('pvInput').value.trim();
 
-        if(!naam || !klas || !tekst) return alert("Naam, klas en tekst zijn verplicht!");
+        // Check of voornaam en klas (NATO) zijn ingevuld
+        if(!naam) return alert("Vergeet niet je voornaam in te vullen!");
+        if(!klas) return alert("Kies je klas (NATO) uit de lijst!");
+        if(!tekst) return alert("De aangifte tekst is leeg!");
 
         db.ref('posts').push({
             naam: naam,
@@ -126,7 +159,10 @@
             feedback: "",
             checks: { bdt: false, ik: false, ws: false, rdw: false, ovt: false },
             timestamp: Date.now()
-        }).then(() => document.getElementById('pvInput').value = '');
+        }).then(() => {
+            document.getElementById('pvInput').value = '';
+            alert("Je PV is succesvol ingeleverd!");
+        });
     }
 
     function toggleCheck(postId, field) {
@@ -177,9 +213,9 @@
                         
                         <div class="fb-input-group">
                             <input class="fb-input" id="input-${id}" oninput="checkWordCount('${id}')" 
-                                   placeholder="Geef een 'TOP' en een verbeterpunt (max 20 woorden)..." 
+                                   placeholder="Geef een 'TOP' en een verbeterpunt..." 
                                    value="${item.feedback || ''}">
-                            <div class="word-count" id="count-' + id + '">0/20 woorden</div>
+                            <div class="word-count" id="count-${id}">0/20 woorden</div>
                             <button class="fb-btn" id="btn-${id}" onclick="submitFeedback('${id}')">FEEDBACK OPSLAAN</button>
                         </div>
                     </div>
