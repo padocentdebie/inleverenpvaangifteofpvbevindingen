@@ -24,7 +24,6 @@
 
         .input-section { background: var(--secondary); padding: 15px; border-radius: 8px; margin-bottom: 20px; }
         
-        /* OC Melding Box */
         .oc-melding { 
             background: var(--info); 
             border-left: 6px solid var(--primary); 
@@ -74,19 +73,19 @@
     </div>
 
     <div class="oc-melding">
-        <span class="oc-header">🚨 OC Melding: Ga naar</span>
-        <strong>Locatie:</strong> Supermarkt 'De Versmarkt', Hoofdstraat 14, 3511 AB Utrecht<br>
-        <strong>Tijdstip:</strong> <span id="currentDateTime"></span><br><br>
-        <strong>Melding:</strong> Er is zojuist een winkeldiefstal gemeld. De bedrijfsleider heeft de verdachte in de kantine zitten. <br>
-        <strong>Opdracht:</strong> Neem de aangifte op. Het Operationeel Centrum (OC) verzoekt expliciet om een duidelijke beschrijving van het <strong>decor buiten</strong>, het <strong>decor binnen</strong> en het volledige <strong>signalement</strong> van de pleger. <br>
-        <em>Let op: Deze gegevens moeten verwerkt worden in het PV van Aangifte.</em>
+        <span class="oc-header">OC Melding: Ga naar</span>
+        <strong>Locatie:</strong> Kledingzaak Fashion & Style, Winkelcentrum De Gaard, Utrecht<br>
+        <strong>Tijdstip:</strong> Woensdag 15 juli 2026 om 14:20 uur<br><br>
+        <strong>Melding:</strong> Er is zojuist een winkeldiefstal gemeld. De winkelbeveiliging heeft de verdachte staande gehouden bij de uitgang van de herenafdeling. <br>
+        <strong>Opdracht:</strong> Neem de aangifte op. Het Operationeel Centrum wil in de rapportage een duidelijke beschrijving van het decor buiten, het decor binnen en het volledige signalement van de pleger ontvangen. <br>
+        <em>Deze gegevens komen in het PV Aangifte.</em>
     </div>
 
     <div class="input-section">
         <div class="user-info">
             <input type="text" id="userName" placeholder="Je voornaam">
             <select id="userClass">
-                <option value="">Kies je klas (NATO)...</option>
+                <option value="">Kies je klas NATO</option>
                 <option value="Delta">Delta</option>
                 <option value="Echo">Echo</option>
                 <option value="Foxtrot">Foxtrot</option>
@@ -94,19 +93,18 @@
                 <option value="Mike">Mike</option>
             </select>
         </div>
-        <textarea id="pvInput" rows="6" placeholder="Typ hier de aangifte... (Gebruik OVT: 'Ik zag', 'Ik hoorde', etc.) Vergeet decor en signalement niet!"></textarea>
-        <button class="main-btn" onclick="sendToFirebase()">✅ Inleveren</button>
+        <textarea id="pvInput" rows="6" placeholder="Typ hier de aangifte... Gebruik OVT: Ik zag, Ik hoorde, etc."></textarea>
+        <button class="main-btn" onclick="sendToFirebase()">Inleveren</button>
     </div>
 
     <div id="feed-container"></div>
 
     <div class="admin-section">
-        <button class="delete-btn" onclick="clearDatabase()">🗑️ Wis alle teksten van deze les</button>
+        <button class="delete-btn" onclick="clearDatabase()">Wis alle teksten van deze les</button>
     </div>
 </div>
 
 <script>
-    // --- FIREBASE ---
     const firebaseConfig = {
         apiKey: "AIzaSyCJ5of6K5MRFXMOiEqEyZxZbs1xoJtXuN8",
         authDomain: "pvaangifteinleveren.firebaseapp.com",
@@ -119,14 +117,6 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-
-    // Datum/Tijd generator voor OC Melding
-    function setOCDateTime() {
-        const nu = new Date();
-        const opties = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-        document.getElementById('currentDateTime').innerText = nu.toLocaleDateString('nl-NL', opties);
-    }
-    setOCDateTime();
 
     function updateVideo(val) {
         if(val) {
@@ -147,10 +137,7 @@
         const klas = document.getElementById('userClass').value;
         const tekst = document.getElementById('pvInput').value.trim();
 
-        // Check of voornaam en klas (NATO) zijn ingevuld
-        if(!naam) return alert("Vergeet niet je voornaam in te vullen!");
-        if(!klas) return alert("Kies je klas (NATO) uit de lijst!");
-        if(!tekst) return alert("De aangifte tekst is leeg!");
+        if(!naam || !klas || !tekst) return alert("Naam, klas en tekst zijn verplicht");
 
         db.ref('posts').push({
             naam: naam,
@@ -161,7 +148,6 @@
             timestamp: Date.now()
         }).then(() => {
             document.getElementById('pvInput').value = '';
-            alert("Je PV is succesvol ingeleverd!");
         });
     }
 
@@ -198,11 +184,11 @@
                 row.className = 'entry-row';
                 row.innerHTML = `
                     <div class="pv-box">
-                        <strong>${item.naam} (${item.klas}):</strong>
+                        <strong>${item.naam} - ${item.klas}:</strong>
                         <p style="white-space: pre-wrap; font-size: 0.95em; margin-top:10px;">${item.tekst}</p>
                     </div>
                     <div class="fb-box">
-                        <strong>Feedback Checklist:</strong>
+                        <strong>Feedback Checklist</strong>
                         <div class="check-group">
                             <label class="check-item"><input type="checkbox" id="chk-bdt-${id}" ${c.bdt ? 'checked' : ''} onchange="toggleCheck('${id}', 'bdt')"> Bestanddeelteksten</label>
                             <label class="check-item"><input type="checkbox" id="chk-ik-${id}" ${c.ik ? 'checked' : ''} onchange="toggleCheck('${id}', 'ik')"> Ik-vorm</label>
@@ -213,7 +199,7 @@
                         
                         <div class="fb-input-group">
                             <input class="fb-input" id="input-${id}" oninput="checkWordCount('${id}')" 
-                                   placeholder="Geef een 'TOP' en een verbeterpunt..." 
+                                   placeholder="Geef een TOP en een verbeterpunt max 20 woorden" 
                                    value="${item.feedback || ''}">
                             <div class="word-count" id="count-${id}">0/20 woorden</div>
                             <button class="fb-btn" id="btn-${id}" onclick="submitFeedback('${id}')">FEEDBACK OPSLAAN</button>
