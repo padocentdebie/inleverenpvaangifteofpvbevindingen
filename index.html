@@ -53,6 +53,7 @@
         .fb-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9em; }
         .word-count { font-size: 0.75em; color: #666; text-align: right; margin-bottom: 2px; }
         .fb-btn { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .fb-btn:disabled { background: #ccc; cursor: not-allowed; }
         
         .admin-section { margin-top: 50px; padding: 15px; border: 2px dashed #ccc; border-radius: 8px; text-align: center; }
         .delete-btn { background: var(--danger); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
@@ -144,7 +145,7 @@
             klas: klas,
             tekst: tekst,
             feedback: "",
-            checks: { bdt: false, ik: false, ws: false, rdw: false, ovt: false },
+            checks: { bdt: false, ik: false, ws: false, rdw: false, ovt: false, decor: false, signalement: false },
             timestamp: Date.now()
         }).then(() => {
             document.getElementById('pvInput').value = '';
@@ -158,14 +159,26 @@
 
     function submitFeedback(id) {
         const fbText = document.getElementById('input-' + id).value;
-        db.ref('posts/' + id).update({ feedback: fbText });
+        db.ref('posts/' + id).update({ feedback: fbText }).then(() => {
+            alert("Feedback opgeslagen");
+        });
     }
 
     function checkWordCount(id) {
         const input = document.getElementById('input-' + id);
+        const countDisplay = document.getElementById('count-' + id);
+        const btn = document.getElementById('btn-' + id);
+        
         const words = input.value.trim().split(/\s+/).filter(w => w.length > 0);
-        document.getElementById('count-' + id).innerText = words.length + "/20 woorden";
-        document.getElementById('btn-' + id).disabled = words.length > 20;
+        countDisplay.innerText = words.length + "/20 woorden";
+        
+        if(words.length > 20) {
+            countDisplay.style.color = "red";
+            btn.disabled = true;
+        } else {
+            countDisplay.style.color = "#666";
+            btn.disabled = false;
+        }
     }
 
     function clearDatabase() {
@@ -195,13 +208,15 @@
                             <label class="check-item"><input type="checkbox" id="chk-ws-${id}" ${c.ws ? 'checked' : ''} onchange="toggleCheck('${id}', 'ws')"> Gouden W's</label>
                             <label class="check-item"><input type="checkbox" id="chk-rdw-${id}" ${c.rdw ? 'checked' : ''} onchange="toggleCheck('${id}', 'rdw')"> Redenen van wetenschap</label>
                             <label class="check-item"><input type="checkbox" id="chk-ovt-${id}" ${c.ovt ? 'checked' : ''} onchange="toggleCheck('${id}', 'ovt')"> Onvoltooid verleden tijd</label>
+                            <label class="check-item"><input type="checkbox" id="chk-decor-${id}" ${c.decor ? 'checked' : ''} onchange="toggleCheck('${id}', 'decor')"> Beschrijving decor binnen en buiten</label>
+                            <label class="check-item"><input type="checkbox" id="chk-signalement-${id}" ${c.signalement ? 'checked' : ''} onchange="toggleCheck('${id}', 'signalement')"> Signalement van de pleger</label>
                         </div>
                         
                         <div class="fb-input-group">
                             <input class="fb-input" id="input-${id}" oninput="checkWordCount('${id}')" 
                                    placeholder="Geef een TOP en een verbeterpunt max 20 woorden" 
                                    value="${item.feedback || ''}">
-                            <div class="word-count" id="count-${id}">0/20 woorden</div>
+                            <div class="word-count" id="count-${id}">${(item.feedback || '').split(/\s+/).filter(w => w.length > 0).length}/20 woorden</div>
                             <button class="fb-btn" id="btn-${id}" onclick="submitFeedback('${id}')">FEEDBACK OPSLAAN</button>
                         </div>
                     </div>
