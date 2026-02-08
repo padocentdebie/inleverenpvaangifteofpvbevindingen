@@ -23,7 +23,8 @@
         }
 
         .input-section { background: var(--secondary); padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        textarea { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; resize: vertical; }
+        .user-info { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        input, select, textarea { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
         
         .main-btn { background: var(--success); color: white; padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1.1em; margin-top: 10px; }
         .main-btn:hover { background: #218838; }
@@ -32,12 +33,15 @@
         .pv-box { background: #fff; padding: 15px; border-left: 6px solid var(--primary); border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .fb-box { background: #fffbe6; padding: 15px; border-left: 6px solid var(--accent); border-radius: 4px; }
         
+        .check-group { display: flex; flex-direction: column; gap: 5px; margin: 10px 0; font-size: 0.85em; }
+        .check-item { display: flex; align-items: center; gap: 8px; background: #f0f0f0; padding: 6px 10px; border-radius: 4px; cursor: pointer; transition: 0.2s; }
+        .check-item:has(input:checked) { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+
         .fb-input-group { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
         .fb-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9em; }
-        .word-count { font-size: 0.75em; color: #666; text-align: right; margin-bottom: 5px; }
-        .fb-btn { background: var(--primary); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .fb-btn:disabled { background: #ccc; cursor: not-allowed; }
-
+        .word-count { font-size: 0.75em; color: #666; text-align: right; margin-bottom: 2px; }
+        .fb-btn { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        
         .admin-section { margin-top: 50px; padding: 15px; border: 2px dashed #ccc; border-radius: 8px; text-align: center; }
         .delete-btn { background: var(--danger); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
     </style>
@@ -49,15 +53,26 @@
     
     <div class="input-section">
         <label style="font-weight: bold; font-size: 0.9em;">YouTube Video ID:</label>
-        <input type="text" id="ytCode" placeholder="Plak ID en druk op Enter" style="width:100%; padding:10px; margin-top:5px; box-sizing:border-box;" onchange="updateVideo(this.value)">
+        <input type="text" id="ytCode" placeholder="Plak ID en druk op Enter" onchange="updateVideo(this.value)">
     </div>
     
     <div id="player-wrapper">
-        <div id="player">Video wordt geladen zodra ID is ingevoerd...</div>
+        <div id="player">Video wordt geladen...</div>
     </div>
 
     <div class="input-section">
-        <textarea id="pvInput" rows="4" placeholder="Typ hier de aangifte... (Ctrl + Enter om in te leveren)"></textarea>
+        <div class="user-info">
+            <input type="text" id="userName" placeholder="Je voornaam">
+            <select id="userClass">
+                <option value="">Kies je klas (NATO)...</option>
+                <option value="Delta">Delta</option>
+                <option value="Echo">Echo</option>
+                <option value="Foxtrot">Foxtrot</option>
+                <option value="Lima">Lima</option>
+                <option value="Mike">Mike</option>
+            </select>
+        </div>
+        <textarea id="pvInput" rows="5" placeholder="Typ hier de aangifte... (Gebruik Onvoltooid Verleden Tijd: 'Ik zag', 'Ik hoorde', etc.)"></textarea>
         <button class="main-btn" onclick="sendToFirebase()">✅ Inleveren</button>
     </div>
 
@@ -69,7 +84,7 @@
 </div>
 
 <script>
-    // --- FIREBASE CONFIGURATIE ---
+    // --- FIREBASE ---
     const firebaseConfig = {
         apiKey: "AIzaSyCJ5of6K5MRFXMOiEqEyZxZbs1xoJtXuN8",
         authDomain: "pvaangifteinleveren.firebaseapp.com",
@@ -80,18 +95,9 @@
         appId: "1:989190242332:web:40bb7c408441c707835fd9"
     };
 
-    // Initialiseer Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // 1. SNEL INLEVEREN (Ctrl + Enter)
-    document.getElementById('pvInput').addEventListener('keydown', function(e) {
-        if (e.ctrlKey && e.key === 'Enter') {
-            sendToFirebase();
-        }
-    });
-
-    // 2. VIDEO UPDATES
     function updateVideo(val) {
         if(val) {
             let cleanId = val.includes('v=') ? val.split('v=')[1].split('&')[0] : val.trim();
@@ -101,42 +107,31 @@
 
     db.ref('currentVideo').on('value', (snapshot) => {
         const code = snapshot.val();
-        const playerDiv = document.getElementById('player');
         if(code) {
-            playerDiv.innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${code}" frameborder="0" allowfullscreen style="position:absolute; top:0; left:0;"></iframe>`;
+            document.getElementById('player').innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${code}" frameborder="0" allowfullscreen style="position:absolute; top:0; left:0;"></iframe>`;
         }
     });
 
-    // 3. PV VERSTUREN
     function sendToFirebase() {
+        const naam = document.getElementById('userName').value.trim();
+        const klas = document.getElementById('userClass').value;
         const tekst = document.getElementById('pvInput').value.trim();
-        if(!tekst) return;
+
+        if(!naam || !klas || !tekst) return alert("Naam, klas en tekst zijn verplicht!");
 
         db.ref('posts').push({
+            naam: naam,
+            klas: klas,
             tekst: tekst,
             feedback: "",
+            checks: { bdt: false, ik: false, ws: false, rdw: false, ovt: false },
             timestamp: Date.now()
-        }).then(() => {
-            document.getElementById('pvInput').value = '';
-        });
+        }).then(() => document.getElementById('pvInput').value = '');
     }
 
-    // 4. FEEDBACK VALIDATIE (MAX 20 WOORDEN)
-    function checkWordCount(id) {
-        const input = document.getElementById('input-' + id);
-        const btn = document.getElementById('btn-' + id);
-        const countDisplay = document.getElementById('count-' + id);
-        
-        const words = input.value.trim().split(/\s+/).filter(w => w.length > 0);
-        countDisplay.innerText = words.length + "/20 woorden";
-        
-        if(words.length > 20) {
-            countDisplay.style.color = "red";
-            btn.disabled = true;
-        } else {
-            countDisplay.style.color = "#666";
-            btn.disabled = false;
-        }
+    function toggleCheck(postId, field) {
+        const currentVal = document.getElementById(`chk-${field}-${postId}`).checked;
+        db.ref(`posts/${postId}/checks/${field}`).set(currentVal);
     }
 
     function submitFeedback(id) {
@@ -144,14 +139,17 @@
         db.ref('posts/' + id).update({ feedback: fbText });
     }
 
-    // 5. DATABASE WISSEN
-    function clearDatabase() {
-        if(confirm("Wil je alle inzendingen van deze sessie verwijderen?")) {
-            db.ref('posts').remove();
-        }
+    function checkWordCount(id) {
+        const input = document.getElementById('input-' + id);
+        const words = input.value.trim().split(/\s+/).filter(w => w.length > 0);
+        document.getElementById('count-' + id).innerText = words.length + "/20 woorden";
+        document.getElementById('btn-' + id).disabled = words.length > 20;
     }
 
-    // 6. LIVE FEED WEERGAVE
+    function clearDatabase() {
+        if(confirm("Alles wissen?")) db.ref('posts').remove();
+    }
+
     db.ref('posts').on('value', (snapshot) => {
         const container = document.getElementById('feed-container');
         container.innerHTML = "";
@@ -159,25 +157,30 @@
         if(data) {
             Object.keys(data).reverse().forEach(id => {
                 const item = data[id];
+                const c = item.checks || {};
                 const row = document.createElement('div');
                 row.className = 'entry-row';
                 row.innerHTML = `
                     <div class="pv-box">
-                        <strong>Ingezonden tekst:</strong><br>
-                        <p style="white-space: pre-wrap;">${item.tekst}</p>
+                        <strong>${item.naam} (${item.klas}):</strong>
+                        <p style="white-space: pre-wrap; font-size: 0.95em; margin-top:10px;">${item.tekst}</p>
                     </div>
                     <div class="fb-box">
-                        <strong>Feedback:</strong>
-                        <p id="display-${id}" style="font-style: italic; color: #444; border-bottom: 1px solid #ddd; padding-bottom: 5px;">
-                            ${item.feedback || 'Nog geen feedback ontvangen...'}
-                        </p>
+                        <strong>Feedback Checklist:</strong>
+                        <div class="check-group">
+                            <label class="check-item"><input type="checkbox" id="chk-bdt-${id}" ${c.bdt ? 'checked' : ''} onchange="toggleCheck('${id}', 'bdt')"> Bestanddeelteksten</label>
+                            <label class="check-item"><input type="checkbox" id="chk-ik-${id}" ${c.ik ? 'checked' : ''} onchange="toggleCheck('${id}', 'ik')"> Ik-vorm</label>
+                            <label class="check-item"><input type="checkbox" id="chk-ws-${id}" ${c.ws ? 'checked' : ''} onchange="toggleCheck('${id}', 'ws')"> Gouden W's</label>
+                            <label class="check-item"><input type="checkbox" id="chk-rdw-${id}" ${c.rdw ? 'checked' : ''} onchange="toggleCheck('${id}', 'rdw')"> Redenen van wetenschap</label>
+                            <label class="check-item"><input type="checkbox" id="chk-ovt-${id}" ${c.ovt ? 'checked' : ''} onchange="toggleCheck('${id}', 'ovt')"> Onvoltooid verleden tijd</label>
+                        </div>
+                        
                         <div class="fb-input-group">
-                            <input class="fb-input" id="input-${id}" 
-                                   oninput="checkWordCount('${id}')" 
-                                   placeholder="Feedback (max 20 woorden)..." 
+                            <input class="fb-input" id="input-${id}" oninput="checkWordCount('${id}')" 
+                                   placeholder="Geef een 'TOP' en een verbeterpunt (max 20 woorden)..." 
                                    value="${item.feedback || ''}">
-                            <div class="word-count" id="count-${id}">0/20 woorden</div>
-                            <button class="fb-btn" id="btn-${id}" onclick="submitFeedback('${id}')">STUUR FEEDBACK</button>
+                            <div class="word-count" id="count-' + id + '">0/20 woorden</div>
+                            <button class="fb-btn" id="btn-${id}" onclick="submitFeedback('${id}')">FEEDBACK OPSLAAN</button>
                         </div>
                     </div>
                 `;
