@@ -17,7 +17,7 @@
         
         #player-wrapper { width: 100%; aspect-ratio: 16 / 9; background: #000; margin: 20px 0; border-radius: 8px; overflow: hidden; position: relative; }
 
-        .input-section { background: var(--secondary); padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .input-section { background: var(--secondary); padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd; }
         
         .oc-melding { background: var(--info); border-left: 6px solid var(--primary); padding: 15px; margin-bottom: 20px; border-radius: 4px; font-size: 0.95em; line-height: 1.5; }
         .oc-header { color: var(--primary); font-weight: bold; text-transform: uppercase; margin-bottom: 8px; display: block; }
@@ -29,9 +29,19 @@
         .nato-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
 
         .user-info { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
-        input, select, textarea { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        input, select, textarea { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; font-family: inherit; }
         
-        .main-btn { background: var(--success); color: white; padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1.1em; }
+        /* Groot PV tekstveld */
+        #pvInput { 
+            resize: vertical; 
+            min-height: 300px; 
+            line-height: 1.6; 
+            border: 2px solid var(--primary);
+            background: #fff;
+        }
+
+        .main-btn { background: var(--success); color: white; padding: 18px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1.2em; transition: 0.3s; }
+        .main-btn:hover { background: #218838; transform: translateY(-2px); }
 
         .entry-row { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; margin-top: 25px; padding-top: 20px; border-top: 2px solid #eee; }
         .hidden { display: none !important; }
@@ -39,15 +49,15 @@
         .pv-box { background: #fff; padding: 15px; border-left: 6px solid var(--primary); border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .fb-box { background: #fffbe6; padding: 15px; border-left: 6px solid var(--accent); border-radius: 4px; }
         
-        .feedback-display { background: #f9f9f9; border: 1px solid #ddd; padding: 10px; margin-top: 10px; border-radius: 4px; font-size: 0.9em; white-space: pre-wrap; }
+        .feedback-display { background: #fdfdfd; border: 1px solid #eee; padding: 12px; margin-top: 10px; border-radius: 4px; font-size: 0.9em; white-space: pre-wrap; color: #444; border-left: 3px solid #ccc; }
 
         .check-group { display: flex; flex-direction: column; gap: 5px; margin: 10px 0; font-size: 0.85em; }
         .check-item { display: flex; align-items: center; gap: 8px; background: #f0f0f0; padding: 6px 10px; border-radius: 4px; cursor: pointer; }
         .check-item:has(input:checked) { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
 
         .fb-input-group { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; border-top: 1px solid #ddd; padding-top: 10px; }
-        .word-count { font-size: 0.75em; color: #666; text-align: right; }
-        .fb-btn { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .word-count { font-size: 0.75em; color: #666; text-align: right; margin-top: 2px; }
+        .fb-btn { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 5px; }
         .fb-btn:disabled { background: #ccc; }
 
         .admin-section { margin-top: 50px; padding: 15px; border: 2px dashed #ccc; border-radius: 8px; text-align: center; }
@@ -69,7 +79,8 @@
     <div class="oc-melding">
         <span class="oc-header">OC Melding: Ga naar</span>
         <strong>Locatie:</strong> Kledingzaak Fashion & Style, Utrecht | <strong>Tijdstip:</strong> 14:20 uur<br>
-        <strong>Opdracht:</strong> Neem de aangifte op. Beschrijf decor (binnen/buiten) en volledig signalement.
+        <strong>Opdracht:</strong> Neem de aangifte op. Beschrijf decor (binnen/buiten) en volledig signalement.<br>
+        <em>Verwerk in de rapportage: Kaal decor (TT), Veranderlijk decor (VT) en gebruik de Ik-vorm.</em>
     </div>
 
     <div class="input-section">
@@ -84,12 +95,12 @@
                 <option value="Mike">Mike</option>
             </select>
         </div>
-        <textarea id="pvInput" rows="6" placeholder="Verwerk: 1. Kaal decor (TT). 2. Veranderlijk decor (VT). 3. Signalement. 4. Ik-vorm."></textarea>
-        <button class="main-btn" onclick="sendToFirebase()" style="margin-top:10px;">INLEVEREN</button>
+        <textarea id="pvInput" rows="12" placeholder="Start hier met het opmaken van het PV Aangifte..."></textarea>
+        <button class="main-btn" onclick="sendToFirebase()" style="margin-top:15px;">INLEVEREN VOOR FEEDBACK</button>
     </div>
 
     <div class="nato-filter-container">
-        <strong style="color: var(--primary);">FILTER OP KLAS:</strong>
+        <strong style="color: var(--primary);">SELECTEER KLAS OM FEEDBACK TE GEVEN:</strong>
         <div class="nato-grid">
             <button class="nato-btn active" id="f-Alle" onclick="setFilter('Alle')">Toon Alles</button>
             <button class="nato-btn" id="f-Delta" onclick="setFilter('Delta')">Delta</button>
@@ -144,13 +155,16 @@
         const naam = document.getElementById('userName').value.trim();
         const klas = document.getElementById('userClass').value;
         const tekst = document.getElementById('pvInput').value.trim();
-        if(!naam || !klas || !tekst) return alert("Vul alles in!");
+        if(!naam || !klas || !tekst) return alert("Vergeet je naam, klas en tekst niet!");
 
         db.ref('posts').push({
             naam, klas, tekst, feedback: "",
             checks: { bdt: false, ik: false, ws: false, rdw: false, ovt: false, decor: false, signalement: false },
             timestamp: Date.now()
-        }).then(() => { document.getElementById('pvInput').value = ''; alert("Ingeleverd!"); });
+        }).then(() => { 
+            document.getElementById('pvInput').value = ''; 
+            alert("Je tekst is succesvol ingeleverd. Je klasgenoten kunnen nu feedback geven."); 
+        });
     }
 
     function toggleCheck(id, field, val) {
@@ -160,14 +174,15 @@
     function addFeedback(id) {
         const input = document.getElementById('in-' + id);
         const newFb = input.value.trim();
-        if(!newFb) return;
+        if(!newFb) return alert("Typ eerst je feedback.");
 
         db.ref('posts/' + id + '/feedback').once('value', s => {
             const old = s.val() || "";
             const combined = old ? old + "\n---\n" + newFb : newFb;
             db.ref('posts/' + id).update({ feedback: combined }).then(() => {
                 input.value = "";
-                alert("Feedback toegevoegd!");
+                // Teller reset
+                document.getElementById('count-' + id).innerText = "0/20 woorden";
             });
         });
     }
@@ -196,22 +211,23 @@
             row.className = 'entry-row';
             row.innerHTML = `
                 <div class="pv-box">
-                    <strong>${item.naam} - ${item.klas}:</strong>
-                    <p style="white-space: pre-wrap; font-size: 0.95em; margin-top:10px;">${item.tekst}</p>
-                    ${item.feedback ? `<div class="feedback-display"><strong>Eerdere feedback:</strong><br>${item.feedback}</div>` : ''}
+                    <strong>${item.naam} (Klas ${item.klas}):</strong>
+                    <p style="white-space: pre-wrap; font-size: 0.95em; margin-top:10px; color: #111;">${item.tekst}</p>
+                    ${item.feedback ? `<div class="feedback-display"><strong>Feedback van de klas:</strong><br>${item.feedback}</div>` : ''}
                 </div>
                 <div class="fb-box">
-                    <strong>Checklist</strong>
+                    <strong style="font-size: 0.9em; color: var(--primary);">Checklist</strong>
                     <div class="check-group">
                         <label class="check-item"><input type="checkbox" onchange="toggleCheck('${id}','bdt',this.checked)" ${c.bdt?'checked':''}> Bestanddeelteksten</label>
                         <label class="check-item"><input type="checkbox" onchange="toggleCheck('${id}','ik',this.checked)" ${c.ik?'checked':''}> Ik-vorm</label>
                         <label class="check-item"><input type="checkbox" onchange="toggleCheck('${id}','ws',this.checked)" ${c.ws?'checked':''}> Gouden W's</label>
-                        <label class="check-item"><input type="checkbox" onchange="toggleCheck('${id}','ovt',this.checked)" ${c.ovt?'checked':''}> Verleden tijd</label>
-                        <label class="check-item"><input type="checkbox" onchange="toggleCheck('${id}','decor',this.checked)" ${c.decor?'checked':''}> Decor</label>
+                        <label class="check-item"><input type="checkbox" onchange="toggleCheck('${id}','rdw',this.checked)" ${c.rdw?'checked':''}> RDW</label>
+                        <label class="check-item"><input type="checkbox" onchange="toggleCheck('${id}','ovt',this.checked)" ${c.ovt?'checked':''}> Onvoltooid Verleden Tijd</label>
+                        <label class="check-item"><input type="checkbox" onchange="toggleCheck('${id}','decor',this.checked)" ${c.decor?'checked':''}> Decor Binnen/Buiten</label>
                         <label class="check-item"><input type="checkbox" onchange="toggleCheck('${id}','signalement',this.checked)" ${c.signalement?'checked':''}> Signalement</label>
                     </div>
                     <div class="fb-input-group">
-                        <input class="fb-input" id="in-${id}" oninput="checkWords('${id}')" placeholder="Voeg jouw TOP/TIP toe (max 20 woorden)">
+                        <input class="fb-input" id="in-${id}" oninput="checkWords('${id}')" placeholder="Schrijf een TOP of TIP...">
                         <div class="word-count" id="count-${id}">0/20 woorden</div>
                         <button class="fb-btn" id="btn-${id}" onclick="addFeedback('${id}')">FEEDBACK TOEVOEGEN</button>
                     </div>
@@ -222,7 +238,7 @@
     }
 
     db.ref('posts').on('value', s => renderFeed(s.val()));
-    function clearDatabase() { if(confirm("Alles wissen?")) db.ref('posts').remove(); }
+    function clearDatabase() { if(confirm("Weet je zeker dat je alle inzendingen wilt wissen?")) db.ref('posts').remove(); }
 </script>
 </body>
 </html>
