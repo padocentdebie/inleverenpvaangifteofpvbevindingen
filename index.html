@@ -45,11 +45,16 @@
         .pv-box { background: #fff; padding: 15px; border-left: 6px solid var(--primary); border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .fb-box { background: #fffbe6; padding: 15px; border-left: 6px solid var(--accent); border-radius: 4px; }
         
+        .feedback-display { 
+            background: #fff; border: 1px solid var(--accent); padding: 10px; 
+            margin-top: 10px; border-radius: 4px; font-size: 0.9em; font-style: italic; color: #333;
+        }
+
         .check-group { display: flex; flex-direction: column; gap: 5px; margin: 10px 0; font-size: 0.85em; }
         .check-item { display: flex; align-items: center; gap: 8px; background: #f0f0f0; padding: 6px 10px; border-radius: 4px; cursor: pointer; transition: 0.2s; }
         .check-item:has(input:checked) { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
 
-        .fb-input-group { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+        .fb-input-group { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; border-top: 1px solid #ddd; padding-top: 10px; }
         .fb-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9em; }
         .word-count { font-size: 0.75em; color: #666; text-align: right; margin-bottom: 2px; }
         .fb-btn { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
@@ -162,7 +167,9 @@
     }
 
     function submitFeedback(id) {
-        const fbText = document.getElementById('input-' + id).value;
+        const fbText = document.getElementById('input-' + id).value.trim();
+        if(!fbText) return alert("Typ eerst feedback");
+        
         db.ref('posts/' + id).update({ feedback: fbText }).then(() => {
             alert("Feedback opgeslagen");
         });
@@ -173,7 +180,6 @@
         const countDisplay = document.getElementById('count-' + id);
         const btn = document.getElementById('btn-' + id);
         
-        // Tel woorden
         const words = input.value.trim().split(/\s+/).filter(w => w.length > 0);
         countDisplay.innerText = words.length + "/20 woorden";
         
@@ -198,12 +204,15 @@
             Object.keys(data).reverse().forEach(id => {
                 const item = data[id];
                 const c = item.checks || {};
+                const currentFeedback = item.feedback || "";
+                
                 const row = document.createElement('div');
                 row.className = 'entry-row';
                 row.innerHTML = `
                     <div class="pv-box">
                         <strong>${item.naam} - ${item.klas}:</strong>
                         <p style="white-space: pre-wrap; font-size: 0.95em; margin-top:10px;">${item.tekst}</p>
+                        ${currentFeedback ? `<div class="feedback-display"><strong>Feedback van collega:</strong><br>${currentFeedback}</div>` : ''}
                     </div>
                     <div class="fb-box">
                         <strong>Feedback Checklist</strong>
@@ -219,9 +228,9 @@
                         
                         <div class="fb-input-group">
                             <input class="fb-input" id="input-${id}" oninput="checkWordCount('${id}')" 
-                                   placeholder="Geef een TOP en een verbeterpunt max 20 woorden" 
-                                   value="${item.feedback || ''}">
-                            <div class="word-count" id="count-${id}">${(item.feedback || '').split(/\s+/).filter(w => w.length > 0).length}/20 woorden</div>
+                                   placeholder="Geef een TOP en een verbeterpunt (max 20 woorden)" 
+                                   value="${currentFeedback}">
+                            <div class="word-count" id="count-${id}">${currentFeedback.split(/\s+/).filter(w => w.length > 0).length}/20 woorden</div>
                             <button class="fb-btn" id="btn-${id}" onclick="submitFeedback('${id}')">FEEDBACK OPSLAAN</button>
                         </div>
                     </div>
