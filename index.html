@@ -94,7 +94,11 @@
                 <option value="Mike">Mike</option>
             </select>
         </div>
-        <textarea id="pvInput" rows="6" placeholder="Typ hier de aangifte... Gebruik OVT: Ik zag, Ik hoorde, etc."></textarea>
+        <textarea id="pvInput" rows="6" placeholder="Verwerk: 
+1. Kaal decor (vast): Tegenwoordige tijd. 
+2. Veranderlijk decor (handelingen): Verleden tijd.
+3. Signalement van de verdachte.
+4. Gebruik de Ik-vorm (ik zag, ik hoorde)."></textarea>
         <button class="main-btn" onclick="sendToFirebase()">Inleveren</button>
     </div>
 
@@ -169,6 +173,7 @@
         const countDisplay = document.getElementById('count-' + id);
         const btn = document.getElementById('btn-' + id);
         
+        // Tel woorden
         const words = input.value.trim().split(/\s+/).filter(w => w.length > 0);
         countDisplay.innerText = words.length + "/20 woorden";
         
