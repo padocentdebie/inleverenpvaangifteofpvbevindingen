@@ -46,8 +46,9 @@
         .fb-box { background: #fffbe6; padding: 15px; border-left: 6px solid var(--accent); border-radius: 4px; }
         
         .feedback-display { 
-            background: #fff; border: 1px solid var(--accent); padding: 10px; 
-            margin-top: 10px; border-radius: 4px; font-size: 0.9em; font-style: italic; color: #333;
+            background: #f9f9f9; border: 1px solid #ddd; padding: 10px; 
+            margin-top: 10px; border-radius: 4px; font-size: 0.9em; color: #333;
+            white-space: pre-wrap;
         }
 
         .check-group { display: flex; flex-direction: column; gap: 5px; margin: 10px 0; font-size: 0.85em; }
@@ -167,11 +168,21 @@
     }
 
     function submitFeedback(id) {
-        const fbText = document.getElementById('input-' + id).value.trim();
-        if(!fbText) return alert("Typ eerst feedback");
+        const inputField = document.getElementById('input-' + id);
+        const nieuweFeedback = inputField.value.trim();
         
-        db.ref('posts/' + id).update({ feedback: fbText }).then(() => {
-            alert("Feedback opgeslagen");
+        if(!nieuweFeedback) return alert("Typ eerst feedback");
+        
+        // Eerst oude feedback ophalen om te kunnen stapelen
+        db.ref('posts/' + id + '/feedback').once('value').then((snapshot) => {
+            const oudeFeedback = snapshot.val() || "";
+            // Nieuwe feedback toevoegen aan de oude (met een streepje ertussen)
+            const samengevoegdeFeedback = oudeFeedback ? oudeFeedback + "\n---\n" + nieuweFeedback : nieuweFeedback;
+            
+            db.ref('posts/' + id).update({ feedback: samengevoegdeFeedback }).then(() => {
+                inputField.value = ""; // Maak veld leeg na verzenden
+                alert("Feedback toegevoegd!");
+            });
         });
     }
 
@@ -179,7 +190,6 @@
         const input = document.getElementById('input-' + id);
         const countDisplay = document.getElementById('count-' + id);
         const btn = document.getElementById('btn-' + id);
-        
         const words = input.value.trim().split(/\s+/).filter(w => w.length > 0);
         countDisplay.innerText = words.length + "/20 woorden";
         
@@ -212,7 +222,7 @@
                     <div class="pv-box">
                         <strong>${item.naam} - ${item.klas}:</strong>
                         <p style="white-space: pre-wrap; font-size: 0.95em; margin-top:10px;">${item.tekst}</p>
-                        ${currentFeedback ? `<div class="feedback-display"><strong>Feedback van collega:</strong><br>${currentFeedback}</div>` : ''}
+                        ${currentFeedback ? `<div class="feedback-display"><strong>Eerdere feedback:</strong><br>${currentFeedback}</div>` : ''}
                     </div>
                     <div class="fb-box">
                         <strong>Feedback Checklist</strong>
@@ -228,10 +238,9 @@
                         
                         <div class="fb-input-group">
                             <input class="fb-input" id="input-${id}" oninput="checkWordCount('${id}')" 
-                                   placeholder="Geef een TOP en een verbeterpunt (max 20 woorden)" 
-                                   value="${currentFeedback}">
-                            <div class="word-count" id="count-${id}">${currentFeedback.split(/\s+/).filter(w => w.length > 0).length}/20 woorden</div>
-                            <button class="fb-btn" id="btn-${id}" onclick="submitFeedback('${id}')">FEEDBACK OPSLAAN</button>
+                                   placeholder="Voeg jouw TOP/TIP toe (max 20 woorden)">
+                            <div class="word-count" id="count-${id}">0/20 woorden</div>
+                            <button class="fb-btn" id="btn-${id}" onclick="submitFeedback('${id}')">FEEDBACK TOEVOEGEN</button>
                         </div>
                     </div>
                 `;
